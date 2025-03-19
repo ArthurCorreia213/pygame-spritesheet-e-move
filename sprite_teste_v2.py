@@ -1,4 +1,5 @@
 import pygame
+from balas import Bala
 
 # Classe que herda de pygame.sprite.Sprite
 class Personagem(pygame.sprite.Sprite):
@@ -8,6 +9,12 @@ class Personagem(pygame.sprite.Sprite):
         self.image = pygame.Surface((32, 32), pygame.SRCALPHA)  # A imagem inicial
         self.rect = self.image.get_rect()  # Obtém o retângulo da imagem para movimentação
         
+        self.bullet_img = pygame.image.load('bullet.png').convert_alpha()
+        self.bullet_speed = 5
+
+        self.HP = 10
+
+        self.balas = pygame.sprite.Group()
 
         self.speed = 2  # Velocidade de movimento
         self.posX = 400  # Posição inicial
@@ -25,6 +32,7 @@ class Personagem(pygame.sprite.Sprite):
         self.run = False
 
     def update(self):
+        self.balas.update()
         # Atualiza o contador de frames
         self.frame_count += 1
         self.moving = False
@@ -45,6 +53,7 @@ class Personagem(pygame.sprite.Sprite):
             self.sheet.action = 3
             self.rect.x += self.speed  # Move para a direita
             self.moving = True
+            
         elif self.direction == 'UP'and self.run == True:
             self.sheet.action = 30
             self.rect.y -= self.speed  # Move para cima
@@ -74,6 +83,10 @@ class Personagem(pygame.sprite.Sprite):
             else:
                 self.sheet.tile_rect = self.sheet.cells[self.sheet.action][0]
 
+        for bala in self.balas:
+            if not bala.active:
+                self.balas.remove(bala)
+
     def get_sprite(self):
         rect = pygame.Rect(self.sheet.tile_rect)
         sprite = pygame.Surface((32,32), pygame.SRCALPHA)
@@ -91,3 +104,27 @@ class Personagem(pygame.sprite.Sprite):
             self.frame_change = 5
 
         return self.run
+
+    def shoot(self,mouse_pos):
+        # if len(self.balas) > 0:
+        #     return
+
+        self.bullet_pos = pygame.math.Vector2(self.rect.center)
+        self.target_pos = pygame.math.Vector2(mouse_pos)
+        self.direction = (self.target_pos - self.bullet_pos).normalize() if self.target_pos != self.bullet_pos else pygame.math.Vector2(0, 0)
+
+        #print(self.player_rect)
+
+        # Cria uma nova bala com direção e posição adequadas
+        new_bala = Bala(self.rect.centerx, self.rect.centery, self.direction, self.bullet_speed, self.bullet_img)
+        self.balas.add(new_bala)
+
+    def draw_balas(self, screen, camera):
+        for bala in self.balas:
+            if bala.active:
+                # Ajuste da posição com a câmera
+                screen.blit(bala.image, (bala.rect.x - camera.left, bala.rect.y - camera.top))
+
+    def remover_todas_balas(self):
+        for bala in self.balas:
+            self.balas.remove(bala)
